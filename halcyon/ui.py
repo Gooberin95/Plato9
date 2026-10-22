@@ -1,36 +1,16 @@
-"""Chrome shared by every page, including the fixed background."""
+"""Chrome shared by every page. The photograph is painted once, on the page root."""
 
 import reflex as rx
 
 from halcyon.state import State
 
-# Source of truth: uploads/background.jpg. Reflex serves the copy at this path.
-BACKGROUND = rx.asset("uploads/background.jpg")
-
 NAV = [
     ("Program", "/program"),
+    ("Schedule", "/schedule"),
     ("Artists", "/artists"),
     ("Visit", "/visit"),
     ("Gallery", "/gallery"),
 ]
-
-
-def fixed_background() -> rx.Component:
-    """One fixed photograph behind every route."""
-    return rx.box(
-        aria_hidden=True,
-        class_name="fixed-bg",
-        style={
-            "background_image": (
-                "linear-gradient(180deg, rgba(12, 10, 8, 0.22), rgba(12, 10, 8, 0.5)), "
-                f"url('{BACKGROUND}')"
-            ),
-            "background_size": "cover",
-            "background_position": "center",
-            "background_repeat": "no-repeat",
-            "background_attachment": "fixed",
-        },
-    )
 
 
 def navbar() -> rx.Component:
@@ -133,12 +113,17 @@ def footer() -> rx.Component:
 
 
 def shell(*children) -> rx.Component:
+    """Page root. assets/background.jpg is applied once, here."""
     return rx.box(
-        fixed_background(),
-        rx.box(
-            navbar(),
-            rx.el.main(*children, id="content"),
-            footer(),
-            class_name="site",
-        ),
+        navbar(),
+        rx.el.main(*children, id="content"),
+        footer(),
+        class_name="site",
+        background_image="url('/background.jpg')",
+        background_size="cover",
+        background_position="center",
+        background_attachment="fixed",
+        background_color="#14110e",
+        color="#f6f1e7",
+        min_height="100vh",
     )

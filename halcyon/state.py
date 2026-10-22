@@ -1,8 +1,23 @@
-"""Session state for filters, the pass hold, and the grounds map."""
+"""Session state for filters, the pass hold, the clock, and a personal schedule."""
+
+import asyncio
+from datetime import datetime, timezone
 
 import reflex as rx
 
-from halcyon.data import ARTISTS, EVENTS, MOMENTS, PASSES, ZONES, Artist, Moment, PassOption, ProgramEvent, Zone
+from halcyon.data import (
+    ARTISTS,
+    EVENTS,
+    GATES_OPEN,
+    MOMENTS,
+    PASSES,
+    ZONES,
+    Artist,
+    Moment,
+    PassOption,
+    ProgramEvent,
+    Zone,
+)
 
 
 class State(rx.State):
@@ -25,6 +40,13 @@ class State(rx.State):
     newsletter_email: str = ""
     subscribed: bool = False
     newsletter_note: str = ""
+    starred: list[str] = []
+    clock_days: str = "—"
+    clock_hours: str = "—"
+    clock_minutes: str = "—"
+    clock_seconds: str = "—"
+    gates_open: bool = False
+    _clock_on: bool = False
 
     events: list[ProgramEvent] = EVENTS
     artists: list[Artist] = ARTISTS
@@ -48,6 +70,49 @@ class State(rx.State):
     @rx.event
     def set_lightbox_open(self, open: bool):
         self.lightbox_open = open
+
+    def _write_clock(self) -> None:
+        remaining = GATES_OPEN - datetime.now(timezone.utc)
+        total = int(remaining.total_seconds())
+        if total <= 0:
+            self.gates_open = True
+            self.clock_days = "0"
+            self.clock_hours = "00"
+            self.clock_minutes = "00"
+            self.clock_seconds = "00"
+            return
+        self.gates_open = False
+        self.clock_days = str(total // 86400)
+        self.clock_hours = f"{(total % 86400) // 3600:02d}"
+        self.clock_minutes = f"{(total % 3600) // 60:02d}"
+        self.clock_seconds = f"{total % 60:02d}"
+
+    @rx.event
+    def open_home(self):
+        """Start the hero countdown. One loop per session."""
+        self._write_clock()
+        if self._clock_on:
+            return
+        self._clock_on = True
+        return State.run_clock
+
+    @rx.event(background=True)
+    async def run_clock(self):
+        try:
+            while True:
+                await asyncio.sleep(1)
+                async with self:
+                    self._write_clock()
+        finally:
+            async with self:
+                self._clock_on = False
+
+    @rx.event
+    def toggle_star(self, event_id: str):
+        if event_id in self.starred:
+            self.starred = [item for item in self.starred if item != event_id]
+            return
+        self.starred = [*self.starred, event_id]
 
     @rx.event
     def toggle_menu(self):
@@ -155,6 +220,15 @@ class State(rx.State):
             return
         self.subscribed = True
         self.newsletter_note = "You're on the list. We'll write before the gates open."
+
+    @rx.var
+    def schedule(self) -> list[ProgramEvent]:
+        chosen = set(self.starred)
+        return [event for event in self.events if event.id in chosen]
+
+    @rx.var
+    def schedule_count(self) -> int:
+        return len(self.starred)
 
     @rx.var
     def visible_events(self) -> list[ProgramEvent]:

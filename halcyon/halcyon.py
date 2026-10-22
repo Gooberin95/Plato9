@@ -2,7 +2,8 @@
 
 import reflex as rx
 
-from halcyon.pages import artists, gallery, index, program, tickets, visit
+from halcyon.pages import artists, gallery, index, program, schedule, tickets, visit
+from halcyon.state import State
 
 app = rx.App(
     html_lang="en",
@@ -22,12 +23,19 @@ app.add_page(
     route="/",
     title="Halcyon Arts Festival",
     description="Three days of painting, music, and making on Port Merrow Bluff, June 12–14, 2027.",
+    on_load=State.open_home,
 )
 app.add_page(
     program,
     route="/program",
     title="Program · Halcyon Arts Festival",
     description="The weekend program by day and stage.",
+)
+app.add_page(
+    schedule,
+    route="/schedule",
+    title="Your schedule · Halcyon Arts Festival",
+    description="Acts you starred for the Halcyon weekend.",
 )
 app.add_page(
     artists,

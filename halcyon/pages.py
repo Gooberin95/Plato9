@@ -4,7 +4,7 @@ import reflex as rx
 
 from halcyon.data import DAYS, DISCIPLINES, FAQS, PASSES, STAGES, ZONES, Artist, Moment, ProgramEvent
 from halcyon.state import State
-from halcyon.ui import BACKGROUND, shell
+from halcyon.ui import shell
 
 
 def index() -> rx.Component:
@@ -22,6 +22,7 @@ def index() -> rx.Component:
                     "Three days of painting, music, and making on the bluff above the tide. Eighty-six artists, three stages, and a workshop tent that smells like clay and indigo.",
                     class_name="lede",
                 ),
+                countdown(),
                 rx.el.div(
                     rx.link("Get passes", href="/tickets", class_name="btn btn-solid"),
                     rx.link("See the program", href="/program", class_name="btn btn-line"),
@@ -71,6 +72,44 @@ def index() -> rx.Component:
     )
 
 
+def countdown() -> rx.Component:
+    """Live countdown to noon UTC on Friday, June 12, 2027."""
+    return rx.el.div(
+        rx.el.p("Until the gates open", class_name="kicker"),
+        rx.cond(
+            State.gates_open,
+            rx.el.p("The gates are open.", class_name="lede"),
+            rx.el.div(
+                _tick(State.clock_days, "days"),
+                _tick(State.clock_hours, "hours"),
+                _tick(State.clock_minutes, "minutes"),
+                _tick(State.clock_seconds, "seconds"),
+                class_name="countdown",
+            ),
+        ),
+        aria_live="polite",
+    )
+
+
+def _tick(value, label: str) -> rx.Component:
+    return rx.el.div(
+        rx.el.strong(value),
+        rx.el.span(label),
+        class_name="tick",
+    )
+
+
+def _star_button(event: ProgramEvent) -> rx.Component:
+    starred = State.starred.contains(event.id)
+    return rx.el.button(
+        rx.cond(starred, "Starred", "Star"),
+        type="button",
+        class_name=rx.cond(starred, "star is-on", "star"),
+        aria_pressed=starred,
+        on_click=State.toggle_star(event.id),
+    )
+
+
 def _event_row(event: ProgramEvent) -> rx.Component:
     return rx.el.article(
         rx.el.time(event.time),
@@ -78,7 +117,11 @@ def _event_row(event: ProgramEvent) -> rx.Component:
             rx.el.h3(event.title, class_name="artist-name"),
             rx.el.p(event.detail, class_name="muted"),
         ),
-        rx.el.span(event.stage, class_name="stage"),
+        rx.el.div(
+            rx.el.span(event.stage, class_name="stage"),
+            _star_button(event),
+            class_name="event-actions",
+        ),
         class_name="event",
     )
 
@@ -89,8 +132,18 @@ def program() -> rx.Component:
             rx.el.p("Program", class_name="kicker"),
             rx.el.h1("What happens, and where"),
             rx.el.p(
-                "Pick a day, then a stage. All times are local to Port Merrow. Workshops keep a standing line; a seat is not reserved with the pass.",
+                "Pick a day, then a stage. Star an act to keep it on your schedule. All times are local to Port Merrow. Workshops keep a standing line; a seat is not reserved with the pass.",
                 class_name="lede",
+            ),
+            rx.cond(
+                State.schedule_count == 0,
+                rx.el.p("Nothing starred yet.", class_name="muted"),
+                rx.link(
+                    State.schedule_count,
+                    " on your schedule",
+                    href="/schedule",
+                    class_name="nav-link",
+                ),
             ),
             rx.el.div(
                 *[
@@ -127,6 +180,36 @@ def program() -> rx.Component:
                     class_name="muted",
                 ),
                 rx.foreach(State.visible_events, _event_row),
+            ),
+            class_name="section wrap panel",
+        ),
+    )
+
+
+def schedule() -> rx.Component:
+    return shell(
+        rx.el.section(
+            rx.el.p("Your schedule", class_name="kicker"),
+            rx.el.h1("Build my schedule"),
+            rx.el.p(
+                "Star acts on the program. They stay here, in weekend order, until you take the star off. This list lives in your browser session.",
+                class_name="lede",
+            ),
+            rx.cond(
+                State.schedule_count == 0,
+                rx.el.div(
+                    rx.el.p(
+                        "No acts yet. Open the program and star the ones you want to catch.",
+                        class_name="muted",
+                    ),
+                    rx.link("Go to the program", href="/program", class_name="btn btn-solid"),
+                    class_name="stack",
+                ),
+                rx.el.div(
+                    rx.foreach(State.schedule, _event_row),
+                    rx.link("Add more from the program", href="/program", class_name="btn btn-line"),
+                    class_name="stack",
+                ),
             ),
             class_name="section wrap panel",
         ),
@@ -374,7 +457,7 @@ def visit() -> rx.Component:
 def _moment_card(moment: Moment, index: int) -> rx.Component:
     return rx.el.button(
         rx.el.img(
-            src=BACKGROUND,
+            src="/background.jpg",
             alt="",
             style={"object_position": moment.position},
         ),
@@ -401,7 +484,7 @@ def gallery() -> rx.Component:
             rx.dialog.root(
                 rx.dialog.content(
                     rx.el.img(
-                        src=BACKGROUND,
+                        src="/background.jpg",
                         alt=State.active_moment.title,
                         style={
                             "object_position": State.active_moment.position,

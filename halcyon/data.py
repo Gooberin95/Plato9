@@ -1,6 +1,7 @@
 """Festival copy. Original to this site."""
 
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 
 @dataclass
@@ -18,6 +19,11 @@ class ProgramEvent:
     stage: str
     title: str
     detail: str
+    id: str = ""
+
+
+# Noon UTC on opening day. The countdown and the program both use this instant.
+GATES_OPEN = datetime(2027, 6, 12, 12, 0, tzinfo=timezone.utc)
 
 
 @dataclass
@@ -169,6 +175,20 @@ EVENTS = [
         "Electric guitar, mostly quiet. The last set before the grounds close.",
     ),
 ]
+
+
+def _event_id(event: ProgramEvent) -> str:
+    slug = []
+    for character in f"{event.day}-{event.time}-{event.title}".lower():
+        slug.append(character if character.isalnum() else "-")
+    compact = "".join(slug)
+    while "--" in compact:
+        compact = compact.replace("--", "-")
+    return compact.strip("-")
+
+
+for _event in EVENTS:
+    _event.id = _event_id(_event)
 
 ARTISTS = [
     Artist(

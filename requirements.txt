@@ -1,2 +1,2 @@
-
+# Halcyon Arts Festival. Reflex 0.10.0 supports Python 3.14; this project targets 3.14.4.
 reflex==0.10.0
