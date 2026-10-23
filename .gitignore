@@ -6,3 +6,5 @@ __pycache__/
 .states
 .venv/
 reflex.log
+# CI output. The workflow rebuilds this directory.
+deploy-package/

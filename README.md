@@ -56,3 +56,7 @@ The backend listens on http://localhost:8000. You do not need to open that URL. 
 - `/tickets` — day, weekend, and patron holds (a session total, not a charge)
 - `/visit` — the grounds, the way in, and practical questions
 - `/gallery` — six crops of the same photograph
+
+## Deploying to Azure
+
+The GitHub Actions workflow builds this site on every push to `main`. Deploying to Azure App Service is described in [DEPLOY.md](DEPLOY.md). Those deploy jobs stay skipped until an Azure subscription exists and the variable `AZURE_DEPLOY_ENABLED` is set to `true`.
